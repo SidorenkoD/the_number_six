@@ -2,7 +2,14 @@ class MiscMailbox < ApplicationMailbox
   before_processing :check_hh
 
   def process
-    Issue.misc.create! title: mail.subject
+    subject = mail.subject
+    content = if subject =~ /secret/i
+                mail.text_part
+              else
+                mail.html_part
+              end
+    Issue.misc.create! title:   subject,
+                       content: content.decoded
   end
 
   private

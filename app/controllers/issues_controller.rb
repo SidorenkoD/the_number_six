@@ -1,5 +1,28 @@
 class IssuesController < ApplicationController
   before_action :set_issue, only: [:show, :edit, :update, :destroy]
+  skip_before_action :verify_authenticity_token, only: :foo
+  before_action :verify_mailgun, only: :foo
+
+  def verify_mailgun
+    # is_auth = ActionMailbox::Ingresses::Mailgun::InboundEmailsController::Authenticator.new(
+    #   key:       Rails.application.credentials.action_mailbox[:mailgun_api_key],
+    #   timestamp: params[:timestamp],
+    #   token:     params[:token],
+    #   signature: params[:signature]
+    # ).authenticated?
+
+    data_to_encode = params[:timestamp] + params[:token]
+    digest         = OpenSSL::Digest.new('sha256')
+    key            = Rails.application.credentials.action_mailbox[:mailgun_api_key]
+    signature      = OpenSSL::HMAC.hexdigest(digest, key, data_to_encode)
+    is_auth        = signature == params[:signature]
+
+    handle_unverified_request unless is_auth
+  end
+
+  def foo
+    Issue.create! title: "It's a webhook!"
+  end
 
   # GET /issues
   # GET /issues.json
